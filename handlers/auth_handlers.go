@@ -62,5 +62,9 @@ func LoginUser(w http.ResponseWriter, r *http.Request) {
         return
     }
 
-    json.NewEncoder(w).Encode(map[string]string{"token": token})
+    // Send the token and its expiration to the client
+    json.NewEncoder(w).Encode(map[string]interface{}{
+        "token":      token,
+        "expires_at": expiresAt.Format(time.RFC3339),
+    })
 }

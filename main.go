@@ -1,29 +1,33 @@
 package main
 
 import (
-	"bookstore-api/data"
-	"bookstore-api/handlers"
-	"fmt"
 	"log"
 	"net/http"
+
+	"bookstore-api/handlers"
+	"bookstore-api/middleware"
+
+	"github.com/gorilla/mux"
 )
 
 func main() {
-	// Initialize database connection
-	dsn := "postgres://postgres:postgres@localhost:5432/postgres"
-	data.InitDB(dsn)
-	defer data.CloseDB()
+	// Initialize the router
+	r := mux.NewRouter()
 
-	// Set up routes
-	http.HandleFunc("/books", handlers.GetBooks)          // GET all books
-	http.HandleFunc("/book", handlers.GetBook)           // GET book by ID
-	http.HandleFunc("/book/create", handlers.CreateBook) // POST create book
-	http.HandleFunc("/book/update", handlers.UpdateBook) // PUT update book
-	http.HandleFunc("/book/delete", handlers.DeleteBook) // DELETE book
+	// Public routes
+	r.HandleFunc("/login", handlers.LoginUser).Methods("POST")
+	r.HandleFunc("/register", handlers.RegisterUser).Methods("POST")
+
+	// Protected routes
+	api := r.PathPrefix("/api").Subrouter()
+	api.Use(middleware.AuthMiddleware)
+	api.HandleFunc("/books", handlers.GetBooks).Methods("GET")
+	api.HandleFunc("/books/{id}", handlers.GetBook).Methods("GET")
+	api.HandleFunc("/books", handlers.CreateBook).Methods("POST")
+	api.HandleFunc("/books/{id}", handlers.UpdateBook).Methods("PUT")
+	api.HandleFunc("/books/{id}", handlers.DeleteBook).Methods("DELETE")
 
 	// Start the server
-	fmt.Println("Starting server on :8080...")
-	if err := http.ListenAndServe(":8080", nil); err != nil {
-		log.Fatalf("Server failed to start: %v", err)
-	}
+	log.Println("Server is running on http://localhost:8080")
+	log.Fatal(http.ListenAndServe(":8080", r))
 }
